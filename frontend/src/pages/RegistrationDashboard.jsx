@@ -4,6 +4,7 @@ import axios from 'axios';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 const RegistrationDashboard = () => {
+  console.log("Client ID cargado en Vite:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -37,14 +38,14 @@ const RegistrationDashboard = () => {
   };
 
   const loginWithGoogle = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      console.log("Autenticación exitosa de Google", tokenResponse);
+    onSuccess: async (credentialResponse) => {
+      console.log("¡Google Autenticó con éxito! Token recibido:", credentialResponse);
       try {
         setLoading(true);
         // Fetch user info using access token
         const userInfo = await axios.get(
           'https://www.googleapis.com/oauth2/v3/userinfo',
-          { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+          { headers: { Authorization: `Bearer ${credentialResponse.access_token}` } }
         );
         
         setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
