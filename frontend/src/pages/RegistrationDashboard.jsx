@@ -38,7 +38,7 @@ const RegistrationDashboard = () => {
   };
 
   const loginWithGoogle = useGoogleLogin({
-    ux_mode: 'redirect',
+    uxMode: 'redirect',
     onSuccess: async (credentialResponse) => {
       console.log("¡Google Autenticó con éxito! Token recibido:", credentialResponse);
       try {
