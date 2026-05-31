@@ -38,6 +38,7 @@ const RegistrationDashboard = () => {
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      console.log("Autenticación exitosa de Google", tokenResponse);
       try {
         setLoading(true);
         // Fetch user info using access token
@@ -47,12 +48,12 @@ const RegistrationDashboard = () => {
         );
         
         setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
-        setStep(3);
       } catch (error) {
         console.error('Error fetching Google user info', error);
-        setStatus({ type: 'error', message: 'Error al validar con Google' });
+        setStatus({ type: 'error', message: 'Error al obtener email, pero puedes continuar.' });
       } finally {
         setLoading(false);
+        setStep(3);
       }
     },
     onError: () => setStatus({ type: 'error', message: 'La validación falló' })
