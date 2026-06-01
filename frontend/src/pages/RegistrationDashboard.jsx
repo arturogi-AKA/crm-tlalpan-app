@@ -83,6 +83,10 @@ const RegistrationDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.correo) {
+      setStatus({ type: 'error', message: 'Por favor ingresa tu correo electrónico.' });
+      return;
+    }
     if (!formData.telefono || !formData.presupuesto || !formData.foto_ine) {
       setStatus({ type: 'error', message: 'Por favor completa todos los campos, incluyendo la foto de tu INE.' });
       return;
@@ -224,8 +228,33 @@ const RegistrationDashboard = () => {
 
           {step === 3 && (
             <form onSubmit={handleSubmit} className="space-y-6 max-w-lg animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-6">
-                <p className="text-sm text-indigo-800"><span className="font-semibold">Correo validado:</span> {formData.correo}</p>
+              <div>
+                <label className="block text-sm font-medium text-crm-textDark mb-2">
+                  Correo electrónico
+                  {formData.correo
+                    ? <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
+                    : <span className="ml-2 text-xs text-amber-600 font-normal">✎ Escríbelo manualmente</span>
+                  }
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    name="correo"
+                    value={formData.correo}
+                    onChange={handleInputChange}
+                    disabled={!!formData.correo}
+                    required
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${
+                      formData.correo
+                        ? 'border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed'
+                        : 'border-amber-300 bg-amber-50/40 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10'
+                    }`}
+                    placeholder="tu@correo.com"
+                  />
+                  {formData.correo && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
+                  )}
+                </div>
               </div>
 
               <div>
