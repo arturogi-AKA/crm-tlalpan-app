@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
@@ -33,32 +33,49 @@ const RegistrationDashboard = () => {
       setStatus({ type: 'error', message: 'Por favor completa Nombre y Apellidos' });
       return;
     }
+    localStorage.setItem("crm_form_data", JSON.stringify(formData));
     setStatus({ type: '', message: '' });
     setStep(step + 1);
   };
 
-  const loginWithGoogle = useGoogleLogin({
-    uxMode: 'redirect',
-    onSuccess: async (credentialResponse) => {
-      console.log("¡Google Autenticó con éxito! Token recibido:", credentialResponse);
-      try {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      console.log("¡Google Autenticó con éxito!");
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      
+      const savedData = localStorage.getItem('crm_form_data');
+      if (savedData) {
+        setFormData(JSON.parse(savedData));
+      }
+      
+      // Limpiar URL
+      window.history.replaceState(null, '', window.location.pathname);
+      
+      if (accessToken) {
         setLoading(true);
-        // Fetch user info using access token
-        const userInfo = await axios.get(
-          'https://www.googleapis.com/oauth2/v3/userinfo',
-          { headers: { Authorization: `Bearer ${credentialResponse.access_token}` } }
-        );
-        
-        setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
-      } catch (error) {
-        console.error('Error fetching Google user info', error);
-        setStatus({ type: 'error', message: 'Error al obtener email, pero puedes continuar.' });
-      } finally {
-        setLoading(false);
+        axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        }).then(userInfo => {
+          setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
+        }).catch(error => {
+          console.error('Error fetching Google user info', error);
+          setStatus({ type: 'error', message: 'Error al obtener email, pero puedes continuar.' });
+        }).finally(() => {
+          setLoading(false);
+          setStep(3);
+        });
+      } else {
         setStep(3);
       }
-    },
-    onError: () => setStatus({ type: 'error', message: 'La validación falló' })
+    }
+  }, []);
+
+  const loginWithGoogle = useGoogleLogin({
+    uxMode: 'redirect',
+    onSuccess: (response) => console.log(response),
+    onError: (error) => console.log(error)
   });
 
   const handleSubmit = async (e) => {
