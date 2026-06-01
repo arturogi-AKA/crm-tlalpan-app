@@ -193,7 +193,7 @@ const RegistrationDashboard = () => {
               <button
                 onClick={() => loginWithGoogle()}
                 disabled={loading}
-                className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm"
+                className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm mb-4"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-crm-sidebar border-t-transparent rounded-full animate-spin"></span>
@@ -203,6 +203,13 @@ const RegistrationDashboard = () => {
                     <span>Validar con tu cuenta de Google</span>
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={() => setStep(3)}
+                className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md"
+              >
+                <span>Confirmar y Continuar al Paso 3 ➔</span>
               </button>
             </div>
           )}
