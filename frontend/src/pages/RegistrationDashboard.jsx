@@ -83,10 +83,6 @@ const RegistrationDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.correo) {
-      setStatus({ type: 'error', message: 'Por favor ingresa tu correo electrónico.' });
-      return;
-    }
     if (!formData.telefono || !formData.presupuesto || !formData.foto_ine) {
       setStatus({ type: 'error', message: 'Por favor completa todos los campos, incluyendo la foto de tu INE.' });
       return;
@@ -198,10 +194,7 @@ const RegistrationDashboard = () => {
               <p className="text-crm-textGray mb-8">Valida tu identidad con Google para continuar con el registro.</p>
               
               <button
-                onClick={() => {
-                  loginWithGoogle();
-                  setTimeout(() => setIsGoogleValidated(true), 1000);
-                }}
+                onClick={() => loginWithGoogle()}
                 disabled={loading}
                 className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm mb-4"
               >
@@ -231,29 +224,18 @@ const RegistrationDashboard = () => {
               <div>
                 <label className="block text-sm font-medium text-crm-textDark mb-2">
                   Correo electrónico
-                  {formData.correo
-                    ? <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
-                    : <span className="ml-2 text-xs text-amber-600 font-normal">✎ Escríbelo manualmente</span>
-                  }
+                  <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
                 </label>
                 <div className="relative">
                   <input
                     type="email"
                     name="correo"
                     value={formData.correo}
-                    onChange={handleInputChange}
-                    disabled={!!formData.correo}
-                    required
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${
-                      formData.correo
-                        ? 'border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed'
-                        : 'border-amber-300 bg-amber-50/40 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10'
-                    }`}
-                    placeholder="tu@correo.com"
+                    disabled
+                    className="w-full px-4 py-3 pr-10 rounded-xl border border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed outline-none"
+                    placeholder="correo@google.com"
                   />
-                  {formData.correo && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
-                  )}
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
                 </div>
               </div>
 
