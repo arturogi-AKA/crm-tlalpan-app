@@ -76,9 +76,19 @@ const RegistrationDashboard = () => {
   }, []);
 
   const loginWithGoogle = useGoogleLogin({
-    uxMode: 'redirect',
-    onSuccess: (response) => console.log(response),
-    onError: (error) => console.log(error)
+    onSuccess: async (tokenResponse) => {
+      console.log('¡Google onSuccess disparado!', tokenResponse);
+      try {
+        const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
+        setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
+      } catch (err) {
+        console.error('Error obteniendo info de Google:', err);
+      }
+      setIsGoogleValidated(true);
+    },
+    onError: (error) => console.log('Google onError:', error),
   });
 
   const handleSubmit = async (e) => {
