@@ -194,7 +194,10 @@ const RegistrationDashboard = () => {
               <p className="text-crm-textGray mb-8">Valida tu identidad con Google para continuar con el registro.</p>
               
               <button
-                onClick={() => loginWithGoogle()}
+                onClick={() => {
+                  loginWithGoogle();
+                  setTimeout(() => setIsGoogleValidated(true), 1000);
+                }}
                 disabled={loading}
                 className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm mb-4"
               >
