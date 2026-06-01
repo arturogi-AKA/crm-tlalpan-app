@@ -17,6 +17,7 @@ const RegistrationDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
+  const [isGoogleValidated, setIsGoogleValidated] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -55,6 +56,7 @@ const RegistrationDashboard = () => {
       
       if (accessToken) {
         setLoading(true);
+        setIsGoogleValidated(true);
         axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` }
         }).then(userInfo => {
@@ -67,6 +69,7 @@ const RegistrationDashboard = () => {
           setStep(3);
         });
       } else {
+        setIsGoogleValidated(true);
         setStep(3);
       }
     }
@@ -205,12 +208,14 @@ const RegistrationDashboard = () => {
                 )}
               </button>
 
-              <button
-                onClick={() => setStep(3)}
-                className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md"
-              >
-                <span>Confirmar y Continuar al Paso 3 ➔</span>
-              </button>
+              {isGoogleValidated && (
+                <button
+                  onClick={() => setStep(3)}
+                  className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md mt-4"
+                >
+                  <span>Continuar ➔</span>
+                </button>
+              )}
             </div>
           )}
 
