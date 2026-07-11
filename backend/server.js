@@ -23,11 +23,17 @@ if (process.env.FRONTEND_URL) {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Origin not allowed by CORS: ' + origin));
+    // Sin origen (ej. Postman, server-to-server) → permitir
+    if (!origin) return callback(null, true);
+    // Origen explícito en la lista → permitir
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
     }
+    // Cualquier subdominio de vercel.app → permitir (producción dinámica)
+    if (/\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Origin not allowed by CORS: ' + origin));
   },
   credentials: true
 }));

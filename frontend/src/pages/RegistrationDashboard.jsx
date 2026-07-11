@@ -115,11 +115,17 @@ const RegistrationDashboard = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      const res = await axios.post(`${API}/api/prospectos/iniciar`, {
-        nombre: formData.nombre,
-        apellidos: formData.apellidos
-      });
+      console.log('[Paso 1] Enviando a:', `${API}/api/prospectos/iniciar`);
+      const res = await axios.post(
+        `${API}/api/prospectos/iniciar`,
+        {
+          nombre: formData.nombre,
+          apellidos: formData.apellidos
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
+      console.log('[Paso 1] Respuesta OK:', res.data);
       const nuevoId = res.data.id_cliente;
       setIdCliente(nuevoId);
       localStorage.setItem('crm_id_cliente', nuevoId);
@@ -127,12 +133,20 @@ const RegistrationDashboard = () => {
       localStorage.setItem('crm_step', '2');
       setStep(2);
     } catch (error) {
-      console.error('Error en Paso 1:', error);
-      setStatus({ type: 'error', message: 'Error al guardar los datos. Intenta de nuevo.' });
+      // Log detallado para diagnóstico en producción
+      const status  = error.response?.status;
+      const msg     = error.response?.data?.message || error.message || 'Error desconocido';
+      console.error('[Paso 1] Error HTTP:', status, '| Mensaje:', msg);
+      console.error('[Paso 1] Error completo:', error);
+      setStatus({
+        type: 'error',
+        message: `Error al guardar los datos (${status || 'sin respuesta'}): ${msg}`
+      });
     } finally {
       setLoading(false);
     }
   };
+
 
   // ─── PASO 2: Google login → obtiene email → POST /api/prospectos/actualizar-correo
   const loginWithGoogle = useGoogleLogin({
