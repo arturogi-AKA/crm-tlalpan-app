@@ -130,8 +130,8 @@ const RegistrationDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.telefono || !formData.presupuesto || !formData.foto_ine) {
-      setStatus({ type: 'error', message: 'Por favor completa todos los campos, incluyendo la foto de tu INE.' });
+    if (!formData.telefono || !formData.presupuesto) {
+      setStatus({ type: 'error', message: 'Por favor completa todos los campos requeridos.' });
       return;
     }
     
@@ -285,7 +285,7 @@ const RegistrationDashboard = () => {
                     value={formData.correo || formData.email || googleEmail || ""}
                     onChange={(e) => setFormData({ ...formData, correo: e.target.value, email: e.target.value })}
                     readOnly={!!(formData.correo || formData.email || googleEmail)}
-                    style={{ color: '#166534', opacity: 1 }}
+                    style={{ color: '#1e293b', opacity: 1, fontWeight: 500 }}
                     className={`w-full px-4 py-3 pr-10 rounded-xl border outline-none ${
                       (formData.correo || formData.email || googleEmail)
                         ? 'border-green-200 bg-green-50/60 cursor-not-allowed' 
@@ -327,33 +327,6 @@ const RegistrationDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-2xl -mr-10 -mt-10 opacity-50 transition-transform group-hover:scale-110"></div>
-                <p className="text-sm text-blue-800 font-medium leading-relaxed relative z-10 mb-4">
-                  🔒 ¡Ya casi listos para recibirte! Por seguridad comunitaria e identificarte como visitante, solo requerimos una foto del FRENTE de tu INE para enviarte la ubicación exacta en Google Maps. Tu pase se activará de inmediato y tus datos están totalmente protegidos.
-                </p>
-                <div className="relative z-10">
-                  <label className="block text-sm font-medium text-crm-textDark mb-2">Foto del INE (Frente/Vuelta)</label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-crm-sidebarActive transition-colors cursor-pointer bg-white">
-                    <div className="space-y-1 text-center">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 justify-center">
-                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-crm-sidebarActive hover:text-crm-sidebar focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-crm-sidebarActive">
-                          <span>Sube un archivo</span>
-                          <input id="file-upload" name="foto_ine" type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
-                        </label>
-                        <p className="pl-1">o arrastra y suelta</p>
-                      </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                      {formData.foto_ine && (
-                        <p className="text-sm font-semibold text-green-600 mt-2">Archivo seleccionado: {formData.foto_ine.name}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
               
               <button
                 type="submit"
