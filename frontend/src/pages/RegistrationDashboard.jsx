@@ -219,12 +219,18 @@ const RegistrationDashboard = () => {
               </button>
 
               {isGoogleValidated && (
-                <button
-                  onClick={() => setStep(3)}
-                  className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md mt-4"
-                >
-                  <span>Continuar ➔</span>
-                </button>
+                <div className="bg-cyan-50/80 border border-cyan-200/60 p-6 rounded-2xl mt-4 flex flex-col items-center justify-center animate-in fade-in duration-300 w-full">
+                  <span className="text-cyan-800 text-sm font-semibold mb-3 flex items-center justify-center">
+                    <CheckCircle2 size={16} className="text-cyan-500 mr-2" />
+                    ¡Google validado con éxito!
+                  </span>
+                  <button
+                    onClick={() => setStep(3)}
+                    className="flex items-center justify-center space-x-2 bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-cyan-600 transition-all shadow-md hover:shadow-lg transform active:scale-95 duration-200"
+                  >
+                    <span>Siguiente ➔</span>
+                  </button>
+                </div>
               )}
             </div>
           )}
