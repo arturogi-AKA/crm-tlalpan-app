@@ -274,7 +274,7 @@ const RegistrationDashboard = () => {
               <div>
                 <label className="block text-sm font-medium text-crm-textDark mb-2">
                   Correo electrónico
-                  {googleEmail && (
+                  {(formData.correo || formData.email || googleEmail) && (
                     <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
                   )}
                 </label>
@@ -282,12 +282,13 @@ const RegistrationDashboard = () => {
                   <input
                     type="email"
                     name="correo"
-                    value={formData.correo || formData.email || ""}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                    disabled={!!(formData.correo || formData.email || googleEmail)}
+                    value={formData.correo || formData.email || googleEmail || ""}
+                    onChange={(e) => setFormData({ ...formData, correo: e.target.value, email: e.target.value })}
+                    readOnly={!!(formData.correo || formData.email || googleEmail)}
+                    style={{ color: '#166534', opacity: 1 }}
                     className={`w-full px-4 py-3 pr-10 rounded-xl border outline-none ${
                       (formData.correo || formData.email || googleEmail)
-                        ? 'border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed' 
+                        ? 'border-green-200 bg-green-50/60 cursor-not-allowed' 
                         : 'border-gray-200 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10 transition-all'
                     }`}
                     placeholder="correo@google.com"
