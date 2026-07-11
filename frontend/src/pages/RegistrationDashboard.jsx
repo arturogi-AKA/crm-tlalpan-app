@@ -10,6 +10,7 @@ const RegistrationDashboard = () => {
     nombre: '',
     apellidos: '',
     correo: '',
+    email: '',
     telefono: '',
     presupuesto: '',
     ubicacion: '',
@@ -47,8 +48,9 @@ const RegistrationDashboard = () => {
     if (savedData) {
       const parsed = JSON.parse(savedData);
       setFormData(parsed);
-      if (parsed.correo) {
-        setGoogleEmail(parsed.correo);
+      const savedEmail = parsed.correo || parsed.email || '';
+      if (savedEmail) {
+        setGoogleEmail(savedEmail);
       }
     }
 
@@ -71,7 +73,7 @@ const RegistrationDashboard = () => {
           if (emailObtenido) {
             setGoogleEmail(emailObtenido);
             setFormData(prev => {
-              const updated = { ...prev, correo: emailObtenido };
+              const updated = { ...prev, correo: emailObtenido, email: emailObtenido };
               localStorage.setItem("crm_form_data", JSON.stringify(updated));
               return updated;
             });
@@ -113,7 +115,7 @@ const RegistrationDashboard = () => {
         if (emailObtenido) {
           setGoogleEmail(emailObtenido);
           setFormData(prev => {
-            const updated = { ...prev, correo: emailObtenido };
+            const updated = { ...prev, correo: emailObtenido, email: emailObtenido };
             localStorage.setItem("crm_form_data", JSON.stringify(updated));
             return updated;
           });
@@ -280,17 +282,17 @@ const RegistrationDashboard = () => {
                   <input
                     type="email"
                     name="correo"
-                    value={formData.correo}
-                    onChange={handleInputChange}
-                    disabled={!!googleEmail}
+                    value={formData.correo || formData.email || ""}
+                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    disabled={!!(formData.correo || formData.email || googleEmail)}
                     className={`w-full px-4 py-3 pr-10 rounded-xl border outline-none ${
-                      googleEmail 
+                      (formData.correo || formData.email || googleEmail)
                         ? 'border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed' 
                         : 'border-gray-200 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10 transition-all'
                     }`}
                     placeholder="correo@google.com"
                   />
-                  {googleEmail && (
+                  {(formData.correo || formData.email || googleEmail) && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
                   )}
                 </div>
@@ -377,7 +379,7 @@ const RegistrationDashboard = () => {
               <button
                 onClick={() => {
                   setStep(1);
-                  setFormData({ nombre: '', apellidos: '', correo: '', telefono: '', presupuesto: '', ubicacion: '', foto_ine: '' });
+                  setFormData({ nombre: '', apellidos: '', correo: '', email: '', telefono: '', presupuesto: '', ubicacion: '', foto_ine: '' });
                   setGoogleEmail('');
                   setClickedGoogle(false);
                   setIsGoogleValidated(false);
