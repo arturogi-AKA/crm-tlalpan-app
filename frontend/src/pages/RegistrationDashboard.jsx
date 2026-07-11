@@ -18,6 +18,7 @@ const RegistrationDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isGoogleValidated, setIsGoogleValidated] = useState(false);
+  const [clickedGoogle, setClickedGoogle] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,6 +75,18 @@ const RegistrationDashboard = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (clickedGoogle) {
+        setIsGoogleValidated(true);
+      }
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [clickedGoogle]);
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -204,7 +217,10 @@ const RegistrationDashboard = () => {
               <p className="text-crm-textGray mb-8">Valida tu identidad con Google para continuar con el registro.</p>
               
               <button
-                onClick={() => loginWithGoogle()}
+                onClick={() => {
+                  setClickedGoogle(true);
+                  loginWithGoogle();
+                }}
                 disabled={loading}
                 className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm mb-4"
               >
@@ -219,18 +235,12 @@ const RegistrationDashboard = () => {
               </button>
 
               {isGoogleValidated && (
-                <div className="bg-cyan-50/80 border border-cyan-200/60 p-6 rounded-2xl mt-4 flex flex-col items-center justify-center animate-in fade-in duration-300 w-full">
-                  <span className="text-cyan-800 text-sm font-semibold mb-3 flex items-center justify-center">
-                    <CheckCircle2 size={16} className="text-cyan-500 mr-2" />
-                    ¡Google validado con éxito!
-                  </span>
-                  <button
-                    onClick={() => setStep(3)}
-                    className="flex items-center justify-center space-x-2 bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-cyan-600 transition-all shadow-md hover:shadow-lg transform active:scale-95 duration-200"
-                  >
-                    <span>Siguiente ➔</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setStep(3)}
+                  className="bg-crm-sidebar text-white px-8 py-3.5 rounded-xl font-medium hover:bg-crm-sidebarHover transition-colors shadow-lg mt-4 inline-flex items-center justify-center space-x-2 animate-in fade-in duration-300"
+                >
+                  <span>Siguiente ➔</span>
+                </button>
               )}
             </div>
           )}
