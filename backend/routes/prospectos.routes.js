@@ -4,12 +4,17 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const prospectosController = require('../controllers/prospectos.controller');
+const {
+  iniciarRegistro,
+  actualizarCorreo,
+  completarRegistro,
+  registrarProspecto
+} = require('../controllers/prospectos.controller');
 
-// Configuración de multer
+// Configuración de multer (se mantiene para la ruta legado)
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
@@ -24,7 +29,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// ─── Rutas incrementales (flujo por pasos) ───────────────────────────────────
+// POST /api/prospectos/iniciar          → Paso 1: nombre + apellidos
+router.post('/iniciar', iniciarRegistro);
+
+// POST /api/prospectos/actualizar-correo → Paso 2: correo Google
+router.post('/actualizar-correo', actualizarCorreo);
+
+// POST /api/prospectos/completar         → Paso 3: teléfono + presupuesto
+router.post('/completar', completarRegistro);
+
+// ─── Ruta legado (registro completo en un solo paso) ─────────────────────────
 // POST /api/prospectos/registro
-router.post('/registro', upload.single('foto_ine'), prospectosController.registrarProspecto);
+router.post('/registro', upload.single('foto_ine'), registrarProspecto);
 
 module.exports = router;
