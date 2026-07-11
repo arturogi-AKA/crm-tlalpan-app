@@ -19,6 +19,7 @@ const RegistrationDashboard = () => {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isGoogleValidated, setIsGoogleValidated] = useState(false);
   const [clickedGoogle, setClickedGoogle] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -41,16 +42,21 @@ const RegistrationDashboard = () => {
   };
 
   useEffect(() => {
+    // Cargar datos guardados de localStorage al montar
+    const savedData = localStorage.getItem('crm_form_data');
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      setFormData(parsed);
+      if (parsed.correo) {
+        setGoogleEmail(parsed.correo);
+      }
+    }
+
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
       console.log("¡Google Autenticó con éxito!");
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
-      
-      const savedData = localStorage.getItem('crm_form_data');
-      if (savedData) {
-        setFormData(JSON.parse(savedData));
-      }
       
       // Limpiar URL
       window.history.replaceState(null, '', window.location.pathname);
@@ -61,7 +67,15 @@ const RegistrationDashboard = () => {
         axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` }
         }).then(userInfo => {
-          setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
+          const emailObtenido = userInfo.data.email;
+          if (emailObtenido) {
+            setGoogleEmail(emailObtenido);
+            setFormData(prev => {
+              const updated = { ...prev, correo: emailObtenido };
+              localStorage.setItem("crm_form_data", JSON.stringify(updated));
+              return updated;
+            });
+          }
         }).catch(error => {
           console.error('Error fetching Google user info', error);
           setStatus({ type: 'error', message: 'Error al obtener email, pero puedes continuar.' });
@@ -95,7 +109,15 @@ const RegistrationDashboard = () => {
         const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
         });
-        setFormData(prev => ({ ...prev, correo: userInfo.data.email }));
+        const emailObtenido = userInfo.data.email;
+        if (emailObtenido) {
+          setGoogleEmail(emailObtenido);
+          setFormData(prev => {
+            const updated = { ...prev, correo: emailObtenido };
+            localStorage.setItem("crm_form_data", JSON.stringify(updated));
+            return updated;
+          });
+        }
       } catch (err) {
         console.error('Error obteniendo info de Google:', err);
       }
@@ -250,18 +272,27 @@ const RegistrationDashboard = () => {
               <div>
                 <label className="block text-sm font-medium text-crm-textDark mb-2">
                   Correo electrónico
-                  <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
+                  {googleEmail && (
+                    <span className="ml-2 text-xs text-green-600 font-normal">✓ Validado con Google</span>
+                  )}
                 </label>
                 <div className="relative">
                   <input
                     type="email"
                     name="correo"
                     value={formData.correo}
-                    disabled
-                    className="w-full px-4 py-3 pr-10 rounded-xl border border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed outline-none"
+                    onChange={handleInputChange}
+                    disabled={!!googleEmail}
+                    className={`w-full px-4 py-3 pr-10 rounded-xl border outline-none ${
+                      googleEmail 
+                        ? 'border-green-200 bg-green-50/60 text-green-800 cursor-not-allowed' 
+                        : 'border-gray-200 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10 transition-all'
+                    }`}
                     placeholder="correo@google.com"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
+                  {googleEmail && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">🔒</span>
+                  )}
                 </div>
               </div>
 
@@ -347,6 +378,10 @@ const RegistrationDashboard = () => {
                 onClick={() => {
                   setStep(1);
                   setFormData({ nombre: '', apellidos: '', correo: '', telefono: '', presupuesto: '', ubicacion: '', foto_ine: '' });
+                  setGoogleEmail('');
+                  setClickedGoogle(false);
+                  setIsGoogleValidated(false);
+                  localStorage.removeItem("crm_form_data");
                 }}
                 className="bg-white border border-gray-200 text-crm-sidebar px-8 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm"
               >
