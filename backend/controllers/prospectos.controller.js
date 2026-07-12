@@ -4,6 +4,7 @@ const {
   actualizarProspectoGoogleSheets,
   probarConexionBasica,
   probarEscrituraBasica,
+  escribirFilaPaso1
 } = require('../services/sheetsService');
 const whatsappService = require('../services/whatsappService');
 
