@@ -57,8 +57,7 @@ const testWrite = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const step1 = async (req, res) => {
   try {
-    const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
-    const Apellidos_Manual = req.body.Apellidos_Manual || req.body.apellidos;
+    const { Nombre_Manual, Apellidos_Manual } = req.body;
 
     if (!Nombre_Manual || !Apellidos_Manual) {
       return res.status(400).json({ success: false, message: 'Nombre_Manual y Apellidos_Manual son obligatorios.' });
@@ -71,12 +70,7 @@ const step1 = async (req, res) => {
 
     await escribirFilaPaso1(ID_Cliente, Nombre_Manual, Apellidos_Manual);
 
-    return res.status(201).json({
-      success: true,
-      message: 'Registro iniciado exitosamente.',
-      ID_Cliente: ID_Cliente,
-      id_cliente: ID_Cliente // Por compatibilidad
-    });
+    return res.status(201).json({ success: true, ID_Cliente });
 
   } catch (error) {
     console.error('Error en step1/iniciarRegistro:', error);

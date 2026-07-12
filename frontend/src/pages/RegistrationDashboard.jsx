@@ -38,7 +38,7 @@ const RegistrationDashboard = () => {
       if (savedEmail) setGoogleEmail(savedEmail);
     }
 
-    const savedId = localStorage.getItem('crm_id_cliente');
+    const savedId = localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
     if (savedId) setIdCliente(savedId);
 
     const savedStep = localStorage.getItem('crm_step');
@@ -122,24 +122,24 @@ const RegistrationDashboard = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          Nombre_Manual: formData.nombre,
-          Apellidos_Manual: formData.apellidos
+          Nombre_Manual: formData.nombre || formData.Nombre_Manual,
+          Apellidos_Manual: formData.apellidos || formData.Apellidos_Manual
         })
       });
 
       const data = await response.json();
       console.log('[Paso 1] Respuesta OK:', data);
 
-      if (!response.ok || !data.success) {
+      if (response.ok && data.ID_Cliente) {
+        setIdCliente(data.ID_Cliente);
+        localStorage.setItem('idCliente', data.ID_Cliente);
+        localStorage.setItem('crm_id_cliente', data.ID_Cliente);
+        localStorage.setItem('crm_form_data', JSON.stringify(formData));
+        localStorage.setItem('crm_step', '2');
+        setStep(2);
+      } else {
         throw new Error(data.message || `Error HTTP: ${response.status}`);
       }
-
-      const nuevoId = data.ID_Cliente || data.id_cliente;
-      setIdCliente(nuevoId);
-      localStorage.setItem('crm_id_cliente', nuevoId);
-      localStorage.setItem('crm_form_data', JSON.stringify(formData));
-      localStorage.setItem('crm_step', '2');
-      setStep(2);
     } catch (error) {
       console.error('[Paso 1] Error completo:', error);
       setStatus({
