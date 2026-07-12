@@ -3,7 +3,8 @@ import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || '';
+const BACKEND_URL = 'https://crm-tlalpan-backend.onrender.com/api/prospectos';
+const API = 'https://crm-tlalpan-backend.onrender.com';
 
 const RegistrationDashboard = () => {
   const [step, setStep] = useState(1);
@@ -115,8 +116,8 @@ const RegistrationDashboard = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      console.log('[Paso 1] Enviando a:', `${API}/api/prospectos/step1`);
-      const response = await fetch(`${API}/api/prospectos/step1`, {
+      console.log('[Paso 1] Enviando a:', `${BACKEND_URL}/step1`);
+      const response = await fetch(`${BACKEND_URL}/step1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,6 +127,12 @@ const RegistrationDashboard = () => {
           Apellidos_Manual: formData.apellidos || formData.Apellidos_Manual
         })
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.log("Respuesta cruda del servidor:", text);
+        throw new Error(`Error HTTP ${response.status}: ${text.substring(0, 100)}`);
+      }
 
       const data = await response.json();
       console.log('[Paso 1] Respuesta OK:', data);
