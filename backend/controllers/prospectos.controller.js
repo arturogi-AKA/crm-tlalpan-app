@@ -4,8 +4,8 @@ const {
   actualizarProspectoGoogleSheets,
   probarConexionBasica,
   probarEscrituraBasica,
-  escribirFilaPaso1
 } = require('../services/sheetsService');
+const whatsappService = require('../services/whatsappService');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DIAGNÓSTICO: Prueba de conexión básica con Google Sheets
@@ -104,31 +104,37 @@ const actualizarCorreo = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PASO 3: Completar registro con teléfono y presupuesto
-// POST /api/prospectos/completar
+// PASO 3: Completar registro con teléfono y presupuesto → finaliza en Sheets y envía WhatsApp
+// POST /api/prospectos/completar y POST /api/prospectos/step3
 // ─────────────────────────────────────────────────────────────────────────────
-const completarRegistro = async (req, res) => {
+const step3 = async (req, res) => {
   try {
-    const idCliente = req.body.ID_Cliente || req.body.id_cliente;
-    const { telefono, presupuesto } = req.body;
+    const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
+    const Telefono_Manual = req.body.telefono || req.body.Telefono_Manual;
+    const Presupuesto_Estimado = req.body.presupuesto || req.body.Presupuesto_Estimado;
+    const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
 
-    if (!idCliente || !telefono || !presupuesto) {
-      return res.status(400).json({ success: false, message: 'id_cliente, telefono y presupuesto son obligatorios.' });
+    if (!idCliente || !Telefono_Manual || !Presupuesto_Estimado) {
+      return res.status(400).json({ success: false, message: 'ID_Cliente, telefono y presupuesto son obligatorios.' });
     }
 
     await actualizarProspectoGoogleSheets(idCliente, [
-      { col: 'D', value: telefono },    // D: Telefono_Manual
-      { col: 'E', value: presupuesto }, // E: Presupuesto_Estimado
+      { col: 'D', value: Telefono_Manual },    // D: Telefono_Manual
+      { col: 'E', value: Presupuesto_Estimado }, // E: Presupuesto_Estimado
       { col: 'N', value: 'Completo' }   // N: Etapa_Actual
     ]);
 
-    return res.status(200).json({ success: true, message: 'Registro completado.' });
+    await whatsappService.enviarMensajeConfirmacion(Telefono_Manual, Nombre_Manual);
+
+    return res.status(200).json({ success: true, message: 'Registro completado exitosamente.' });
 
   } catch (error) {
-    console.error('Error en completarRegistro:', error);
-    return res.status(500).json({ success: false, message: 'Error al completar el registro.' });
+    console.error('Error en step3/completarRegistro:', error);
+    return res.status(500).json({ success: false, message: 'Error al completar el registro en el Paso 3.' });
   }
 };
+
+const completarRegistro = step3;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGADO: Ruta original de registro completo (se mantiene para compatibilidad)
@@ -171,6 +177,7 @@ module.exports = {
   testSheets,
   testWrite,
   actualizarCorreo,
+  step3,
   completarRegistro,
   registrarProspecto
 };

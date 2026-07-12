@@ -206,9 +206,9 @@ const RegistrationDashboard = () => {
     setStep(3);
   };
 
-  // ─── PASO 3: Submit → POST /api/prospectos/completar ─────────────────────
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // ─── PASO 3: Submit → POST /api/prospectos/step3 ─────────────────────────
+  const handleStep3 = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!formData.telefono || !formData.presupuesto) {
       setStatus({ type: 'error', message: 'Por favor completa Teléfono y Presupuesto.' });
       return;
@@ -218,26 +218,46 @@ const RegistrationDashboard = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      const currentId = idCliente || localStorage.getItem('crm_id_cliente');
-      await axios.post(`${API}/api/prospectos/completar`, {
-        id_cliente: currentId,
-        telefono: formData.telefono,
-        presupuesto: formData.presupuesto
+      const currentId = idCliente || localStorage.getItem('idCliente') || localStorage.getItem('crm_id_cliente');
+      console.log('[Paso 3] Enviando a:', `${BACKEND_URL}/step3`);
+      const response = await fetch(`${BACKEND_URL}/step3`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ID_Cliente: currentId,
+          id_cliente: currentId,
+          telefono: formData.telefono,
+          Telefono_Manual: formData.telefono,
+          presupuesto: formData.presupuesto,
+          Presupuesto_Estimado: formData.presupuesto,
+          Nombre_Manual: formData.nombre || formData.Nombre_Manual,
+          nombre: formData.nombre || formData.Nombre_Manual
+        })
       });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || `Error HTTP: ${response.status}`);
+      }
 
       setStatus({ type: 'success', message: '¡Registro completado exitosamente!' });
       // Limpiar localStorage del flujo
       localStorage.removeItem('crm_form_data');
       localStorage.removeItem('crm_id_cliente');
+      localStorage.removeItem('idCliente');
       localStorage.removeItem('crm_step');
       setStep(4);
     } catch (error) {
       console.error('Error en Paso 3:', error);
-      setStatus({ type: 'error', message: 'Error al completar el registro. Intenta de nuevo.' });
+      setStatus({ type: 'error', message: `Error al completar el registro: ${error.message || 'Intenta de nuevo.'}` });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSubmit = handleStep3;
 
   // ─── Reset completo ───────────────────────────────────────────────────────
   const handleReset = () => {

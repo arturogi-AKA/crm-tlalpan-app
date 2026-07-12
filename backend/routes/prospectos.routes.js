@@ -10,6 +10,7 @@ const {
   testSheets,
   testWrite,
   actualizarCorreo,
+  step3,
   completarRegistro,
   registrarProspecto
 } = require('../controllers/prospectosController');
@@ -44,7 +45,8 @@ router.post('/iniciar', iniciarRegistro);
 // POST /api/prospectos/actualizar-correo → Paso 2: correo Google
 router.post('/actualizar-correo', actualizarCorreo);
 
-// POST /api/prospectos/completar         → Paso 3: teléfono + presupuesto
+// POST /api/prospectos/completar y /step3 → Paso 3: teléfono + presupuesto + whatsapp
+router.post('/step3', step3);
 router.post('/completar', completarRegistro);
 
 // ─── Ruta legado (registro completo en un solo paso) ─────────────────────────
