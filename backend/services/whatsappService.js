@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 /**
  * Envía un mensaje de confirmación por WhatsApp al prospecto tras finalizar el Paso 3.
  * @param {string} telefono - Teléfono celular del prospecto.
@@ -24,29 +22,34 @@ const enviarMensajeConfirmacion = async (telefono, nombre) => {
 
     console.log(`[WHATSAPP SERVICE] Enviando confirmación a ${telefono}...`);
 
-    const response = await axios.post(
-      apiUrl,
-      {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         messaging_product: 'whatsapp',
         to: telefono,
         type: 'text',
         text: {
           body: mensaje
         }
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+      })
+    });
 
-    console.log('[WHATSAPP SERVICE] Mensaje enviado OK:', response.data);
-    return { success: true, data: response.data };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ [WHATSAPP SERVICE] Error HTTP ${response.status}:`, errorText);
+      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+    }
+
+    const data = await response.json();
+    console.log('[WHATSAPP SERVICE] Mensaje enviado OK:', data);
+    return { success: true, data };
 
   } catch (error) {
-    console.error('❌ [WHATSAPP SERVICE] Error al enviar mensaje de confirmación:', error.response?.data || error.message);
+    console.error('❌ [WHATSAPP SERVICE] Error al enviar mensaje de confirmación:', error.message);
     return { success: false, error: error.message };
   }
 };
