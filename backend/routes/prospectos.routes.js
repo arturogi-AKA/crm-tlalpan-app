@@ -5,11 +5,14 @@ const path = require('path');
 const fs = require('fs');
 
 const {
+  step1,
   iniciarRegistro,
+  testSheets,
+  testWrite,
   actualizarCorreo,
   completarRegistro,
   registrarProspecto
-} = require('../controllers/prospectos.controller');
+} = require('../controllers/prospectosController');
 
 // Configuración de multer (se mantiene para la ruta legado)
 const uploadDir = path.join(__dirname, '../uploads');
@@ -29,8 +32,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// ─── Diagnóstico Google Sheets ───────────────────────────────────────────────
+router.get('/test-sheets', testSheets);
+router.get('/test-write', testWrite);
+
 // ─── Rutas incrementales (flujo por pasos) ───────────────────────────────────
-// POST /api/prospectos/iniciar          → Paso 1: nombre + apellidos
+// POST /api/prospectos/step1 y /iniciar → Paso 1: nombre + apellidos
+router.post('/step1', step1);
 router.post('/iniciar', iniciarRegistro);
 
 // POST /api/prospectos/actualizar-correo → Paso 2: correo Google

@@ -104,8 +104,8 @@ const RegistrationDashboard = () => {
     return () => window.removeEventListener('focus', handleWindowFocus);
   }, [clickedGoogle]);
 
-  // ─── PASO 1: "Continuar" → POST /api/prospectos/iniciar ──────────────────
-  const handlePaso1 = async () => {
+  // ─── PASO 1: "Continuar" → POST /api/prospectos/step1 ──────────────────
+  const handleStep1 = async () => {
     if (!formData.nombre || !formData.apellidos) {
       setStatus({ type: 'error', message: 'Por favor completa Nombre y Apellidos.' });
       return;
@@ -115,37 +115,43 @@ const RegistrationDashboard = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      console.log('[Paso 1] Enviando a:', `${API}/api/prospectos/iniciar`);
-      const res = await axios.post(
-        `${API}/api/prospectos/iniciar`,
-        {
-          nombre: formData.nombre,
-          apellidos: formData.apellidos
+      console.log('[Paso 1] Enviando a:', `${API}/api/prospectos/step1`);
+      const response = await fetch(`${API}/api/prospectos/step1`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+        body: JSON.stringify({
+          Nombre_Manual: formData.nombre,
+          Apellidos_Manual: formData.apellidos
+        })
+      });
 
-      console.log('[Paso 1] Respuesta OK:', res.data);
-      const nuevoId = res.data.id_cliente;
+      const data = await response.json();
+      console.log('[Paso 1] Respuesta OK:', data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || `Error HTTP: ${response.status}`);
+      }
+
+      const nuevoId = data.ID_Cliente || data.id_cliente;
       setIdCliente(nuevoId);
       localStorage.setItem('crm_id_cliente', nuevoId);
       localStorage.setItem('crm_form_data', JSON.stringify(formData));
       localStorage.setItem('crm_step', '2');
       setStep(2);
     } catch (error) {
-      // Log detallado para diagnóstico en producción
-      const status  = error.response?.status;
-      const msg     = error.response?.data?.message || error.message || 'Error desconocido';
-      console.error('[Paso 1] Error HTTP:', status, '| Mensaje:', msg);
       console.error('[Paso 1] Error completo:', error);
       setStatus({
         type: 'error',
-        message: `Error al guardar los datos (${status || 'sin respuesta'}): ${msg}`
+        message: `Error al guardar los datos: ${error.message || 'Error desconocido'}`
       });
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePaso1 = handleStep1;
 
 
   // ─── PASO 2: Google login → obtiene email → POST /api/prospectos/actualizar-correo
@@ -303,7 +309,7 @@ const RegistrationDashboard = () => {
                 />
               </div>
               <button
-                onClick={handlePaso1}
+                onClick={handleStep1}
                 disabled={loading}
                 className="bg-crm-sidebar text-white px-8 py-3.5 rounded-xl font-medium hover:bg-crm-sidebarHover transition-colors shadow-lg mt-4 flex items-center space-x-2"
               >

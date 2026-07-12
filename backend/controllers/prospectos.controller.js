@@ -1,57 +1,86 @@
 const { v4: uuidv4 } = require('uuid');
 const {
   agregarProspectoGoogleSheets,
-  actualizarProspectoGoogleSheets
-} = require('../services/googleSheets.service');
+  actualizarProspectoGoogleSheets,
+  probarConexionBasica,
+  probarEscrituraBasica,
+  escribirFilaPaso1
+} = require('../services/sheetsService');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIAGNÓSTICO: Prueba de conexión básica con Google Sheets
+// GET /api/prospectos/test-sheets
+// ─────────────────────────────────────────────────────────────────────────────
+const testSheets = async (req, res) => {
+  try {
+    const resultado = await probarConexionBasica();
+    return res.status(200).json({
+      success: true,
+      title: resultado.title,
+      message: `Conexión básica exitosa. Título del documento: ${resultado.title}`
+    });
+  } catch (error) {
+    console.error('Error en testSheets:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error en la prueba de conexión básica con Google Sheets.',
+      error: error.message || error
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIAGNÓSTICO: Prueba de escritura básica con Google Sheets
+// GET /api/prospectos/test-write
+// ─────────────────────────────────────────────────────────────────────────────
+const testWrite = async (req, res) => {
+  try {
+    const resultado = await probarEscrituraBasica();
+    return res.status(200).json({
+      success: true,
+      message: 'Fila de prueba insertada correctamente.',
+      details: resultado.updates || resultado
+    });
+  } catch (error) {
+    console.error('Error en testWrite:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error en la prueba de escritura básica con Google Sheets.',
+      error: error.message || error
+    });
+  }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PASO 1: Registrar nombre y apellidos → genera ID_Cliente y crea la fila
-// POST /api/prospectos/iniciar
+// POST /api/prospectos/step1 y POST /api/prospectos/iniciar
 // ─────────────────────────────────────────────────────────────────────────────
-const iniciarRegistro = async (req, res) => {
+const step1 = async (req, res) => {
   try {
-    const { nombre, apellidos } = req.body;
+    const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
+    const Apellidos_Manual = req.body.Apellidos_Manual || req.body.apellidos;
 
-    if (!nombre || !apellidos) {
-      return res.status(400).json({ success: false, message: 'Nombre y Apellidos son obligatorios.' });
+    if (!Nombre_Manual || !Apellidos_Manual) {
+      return res.status(400).json({ success: false, message: 'Nombre_Manual y Apellidos_Manual son obligatorios.' });
     }
 
-    const idCliente = uuidv4();
-    const etapaActual = 'Registro';
-    const fechaInicioEtapa = new Date().toISOString();
+    // Generar ID_Cliente único (ej. TLP-XXXX-Time)
+    const randomCode = Math.floor(1000 + Math.random() * 9000);
+    const timestampCode = Date.now();
+    const ID_Cliente = `TLP-${randomCode}-${timestampCode}`;
 
-    // Columnas:  A            B        C           D    E    F    G    H    I    J    K    L    M    N             O                  P    Q
-    const fila = [
-      idCliente,    // A: ID_Cliente
-      nombre,       // B: Nombre_Manual
-      apellidos,    // C: Apellidos_Manual
-      '',           // D: Telefono_Manual
-      '',           // E: Presupuesto_Estimado
-      '',           // F: Correo_Google
-      '',           // G: Fecha_Hora_Cita
-      '',           // H: Estatus_Cita
-      '',           // I: URL_Frente_INE
-      '',           // J: Nombre_INE
-      '',           // K: Apellidos_INE
-      '',           // L: CURP_INE
-      '',           // M: Alerta_Discrepancia
-      etapaActual,  // N: Etapa_Actual
-      fechaInicioEtapa, // O: Fecha_Inicio_Etapa
-      '',           // P: Foto_INE
-      ''            // Q: Ubicacion_Predio
-    ];
-
-    await agregarProspectoGoogleSheets(fila);
+    await escribirFilaPaso1(ID_Cliente, Nombre_Manual, Apellidos_Manual);
 
     return res.status(201).json({
       success: true,
-      message: 'Registro iniciado.',
-      id_cliente: idCliente
+      message: 'Registro iniciado exitosamente.',
+      ID_Cliente: ID_Cliente,
+      id_cliente: ID_Cliente // Por compatibilidad
     });
 
   } catch (error) {
-    console.error('Error en iniciarRegistro:', error);
-    return res.status(500).json({ success: false, message: 'Error al iniciar el registro.' });
+    console.error('Error en step1/iniciarRegistro:', error);
+    return res.status(500).json({ success: false, message: 'Error al iniciar el registro en el Paso 1.' });
   }
 };
 
@@ -61,13 +90,14 @@ const iniciarRegistro = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const actualizarCorreo = async (req, res) => {
   try {
-    const { id_cliente, correo } = req.body;
+    const idCliente = req.body.ID_Cliente || req.body.id_cliente;
+    const { correo } = req.body;
 
-    if (!id_cliente || !correo) {
+    if (!idCliente || !correo) {
       return res.status(400).json({ success: false, message: 'id_cliente y correo son obligatorios.' });
     }
 
-    await actualizarProspectoGoogleSheets(id_cliente, [
+    await actualizarProspectoGoogleSheets(idCliente, [
       { col: 'F', value: correo }  // F: Correo_Google
     ]);
 
@@ -85,13 +115,14 @@ const actualizarCorreo = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const completarRegistro = async (req, res) => {
   try {
-    const { id_cliente, telefono, presupuesto } = req.body;
+    const idCliente = req.body.ID_Cliente || req.body.id_cliente;
+    const { telefono, presupuesto } = req.body;
 
-    if (!id_cliente || !telefono || !presupuesto) {
+    if (!idCliente || !telefono || !presupuesto) {
       return res.status(400).json({ success: false, message: 'id_cliente, telefono y presupuesto son obligatorios.' });
     }
 
-    await actualizarProspectoGoogleSheets(id_cliente, [
+    await actualizarProspectoGoogleSheets(idCliente, [
       { col: 'D', value: telefono },    // D: Telefono_Manual
       { col: 'E', value: presupuesto }, // E: Presupuesto_Estimado
       { col: 'N', value: 'Completo' }   // N: Etapa_Actual
@@ -141,7 +172,10 @@ const registrarProspecto = async (req, res) => {
 };
 
 module.exports = {
-  iniciarRegistro,
+  step1,
+  iniciarRegistro: step1,
+  testSheets,
+  testWrite,
   actualizarCorreo,
   completarRegistro,
   registrarProspecto
