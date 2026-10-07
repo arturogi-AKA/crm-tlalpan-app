@@ -29,6 +29,17 @@ const RegistrationDashboard = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePresupuestoChange = (e) => {
+    const rawValue = e.target.value;
+    const digitsOnly = rawValue.replace(/\D/g, '');
+    const formatted = digitsOnly ? digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+    setFormData(prev => {
+      const updated = { ...prev, presupuesto: formatted };
+      localStorage.setItem('crm_form_data', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // ─── Rehydrate desde localStorage al montar ───────────────────────────────
   useEffect(() => {
     const savedData = localStorage.getItem('crm_form_data');
@@ -432,12 +443,13 @@ const RegistrationDashboard = () => {
                     <span className="text-gray-500">$</span>
                   </div>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     name="presupuesto"
                     value={formData.presupuesto}
-                    onChange={handleInputChange}
+                    onChange={handlePresupuestoChange}
                     className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-200 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10 outline-none transition-all"
-                    placeholder="50000"
+                    placeholder="850,000"
                   />
                 </div>
               </div>
