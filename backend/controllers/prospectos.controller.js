@@ -85,24 +85,24 @@ const step1 = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const actualizarCorreo = async (req, res) => {
   try {
+    console.log("Correo recibido en backend:", req.body);
+
     const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
-    const correo = req.body.correo || req.body.email || req.body.Correo_Google;
+    const correoGoogle = req.body.correoGoogle || req.body.Correo_Google || req.body.correo || req.body.email;
 
-    console.log('[Backend actualizarCorreo] ID_Cliente:', idCliente, '| Correo:', correo);
-
-    if (!idCliente || !correo) {
+    if (!idCliente || !correoGoogle) {
       return res.status(400).json({ 
         success: false, 
-        message: 'ID_Cliente y correo son obligatorios.',
-        received: { idCliente, correo, body: req.body } 
+        message: 'ID_Cliente y correoGoogle son obligatorios.',
+        received: req.body 
       });
     }
 
     await actualizarProspectoGoogleSheets(idCliente, [
-      { col: 'F', value: correo }  // F: Correo_Google
+      { col: 'F', value: correoGoogle }  // F: Correo_Google (Columna 6)
     ]);
 
-    return res.status(200).json({ success: true, message: 'Correo de Google actualizado exitosamente en Sheets.', correo });
+    return res.status(200).json({ success: true, message: 'Correo de Google guardado en Columna F exitosamente.', correoGoogle });
 
   } catch (error) {
     console.error('Error en actualizarCorreo:', error);
@@ -116,29 +116,24 @@ const actualizarCorreo = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const step3 = async (req, res) => {
   try {
+    console.log("Correo recibido en backend:", req.body);
+
     const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
     const Telefono_Manual = req.body.telefono || req.body.Telefono_Manual;
     const Presupuesto_Estimado = req.body.presupuesto || req.body.Presupuesto_Estimado;
     const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
-    const Correo_Google = req.body.correo || req.body.email || req.body.Correo_Google;
-
-    console.log('[Backend step3] ID_Cliente:', idCliente, '| Telefono:', Telefono_Manual, '| Presupuesto:', Presupuesto_Estimado, '| Correo_Google:', Correo_Google);
+    const correoGoogle = req.body.correoGoogle || req.body.Correo_Google || req.body.correo || req.body.email || '';
 
     if (!idCliente || !Telefono_Manual || !Presupuesto_Estimado) {
       return res.status(400).json({ success: false, message: 'ID_Cliente, telefono y presupuesto son obligatorios.' });
     }
 
     const updates = [
-      { col: 'D', value: Telefono_Manual },     // D: Telefono_Manual
-      { col: 'E', value: Presupuesto_Estimado },  // E: Presupuesto_Estimado
-      { col: 'N', value: 'Completo' }            // N: Etapa_Actual
+      { col: 'D', value: Telefono_Manual },      // D: Telefono_Manual (4ta col)
+      { col: 'E', value: Presupuesto_Estimado },  // E: Presupuesto_Estimado (5ta col)
+      { col: 'F', value: correoGoogle },          // F: Correo_Google (6ta col)
+      { col: 'N', value: 'Completo' }             // N: Etapa_Actual
     ];
-
-    if (Correo_Google) {
-      updates.push({ col: 'F', value: Correo_Google }); // F: Correo_Google
-    } else {
-      console.warn('[Backend step3] No se recibió Correo_Google en el payload del Paso 3.');
-    }
 
     await actualizarProspectoGoogleSheets(idCliente, updates);
 

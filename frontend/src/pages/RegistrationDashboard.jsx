@@ -6,12 +6,33 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 const BACKEND_URL = 'https://crm-tlalpan-backend.onrender.com/api/prospectos';
 const API = 'https://crm-tlalpan-backend.onrender.com';
 
+// Helper para decodificar credenciales JWT de Google en el navegador
+const parseJwt = (token) => {
+  try {
+    if (!token || typeof token !== 'string') return null;
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Error al decodificar JWT de Google:', e);
+    return null;
+  }
+};
+
 const RegistrationDashboard = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
-    correo: '',   // email validado con Google (se conserva en estado, no se muestra en Paso 3)
+    correoGoogle: '',
+    correo: '',
     email: '',
     telefono: '',
     presupuesto: '',
@@ -46,7 +67,7 @@ const RegistrationDashboard = () => {
     if (savedData) {
       const parsed = JSON.parse(savedData);
       setFormData(prev => ({ ...prev, ...parsed }));
-      const savedEmail = parsed.correo || parsed.email || '';
+      const savedEmail = parsed.correoGoogle || parsed.correo || parsed.email || '';
       if (savedEmail) setGoogleEmail(savedEmail);
     }
 
@@ -56,42 +77,69 @@ const RegistrationDashboard = () => {
     const savedStep = localStorage.getItem('crm_step');
     if (savedStep) setStep(parseInt(savedStep, 10));
 
-    // Manejar redirect de Google (access_token en hash)
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.substring(1));
+    // Manejar redirect de Google (credential o access_token en hash/search)
+    const hash = window.location.hash || window.location.search;
+    if (hash && (hash.includes('access_token') || hash.includes('credential') || hash.includes('id_token'))) {
+      const params = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
       const accessToken = params.get('access_token');
+      const credential = params.get('credential') || params.get('id_token');
       window.history.replaceState(null, '', window.location.pathname);
 
-      if (accessToken) {
+      let emailObtenido = '';
+      if (credential) {
+        const decoded = parseJwt(credential);
+        if (decoded?.email) emailObtenido = decoded.email;
+      }
+
+      if (emailObtenido) {
+        setGoogleEmail(emailObtenido);
+        localStorage.setItem('crm_google_email', emailObtenido);
+        localStorage.setItem('google_email', emailObtenido);
+        setFormData(prev => {
+          const updated = { ...prev, correoGoogle: emailObtenido, correo: emailObtenido, email: emailObtenido };
+          localStorage.setItem('crm_form_data', JSON.stringify(updated));
+          return updated;
+        });
+        const currentId = localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente') || idCliente;
+        if (currentId) {
+          axios.post(`${BACKEND_URL}/actualizar-correo`, {
+            ID_Cliente: currentId,
+            id_cliente: currentId,
+            correoGoogle: emailObtenido,
+            Correo_Google: emailObtenido,
+            correo: emailObtenido,
+            email: emailObtenido
+          }).catch(err => console.error('Error actualizando correo vía hash redirect:', err));
+        }
+        setIsGoogleValidated(true);
+        setStep(3);
+        localStorage.setItem('crm_step', '3');
+      } else if (accessToken) {
         setLoading(true);
         setIsGoogleValidated(true);
         axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` }
         }).then(async userInfo => {
-          const emailObtenido = userInfo.data.email;
-          if (emailObtenido) {
-            setGoogleEmail(emailObtenido);
-            const newData = { correo: emailObtenido, email: emailObtenido };
+          const email = userInfo.data.email;
+          if (email) {
+            setGoogleEmail(email);
+            localStorage.setItem('crm_google_email', email);
+            localStorage.setItem('google_email', email);
             setFormData(prev => {
-              const updated = { ...prev, ...newData };
+              const updated = { ...prev, correoGoogle: email, correo: email, email: email };
               localStorage.setItem('crm_form_data', JSON.stringify(updated));
               return updated;
             });
-            // Enviar correo al backend (Paso 2)
             const currentId = localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente') || idCliente;
             if (currentId) {
-              try {
-                await axios.post(`${BACKEND_URL}/actualizar-correo`, {
-                  ID_Cliente: currentId,
-                  id_cliente: currentId,
-                  correo: emailObtenido,
-                  email: emailObtenido,
-                  Correo_Google: emailObtenido
-                });
-              } catch (err) {
-                console.error('Error actualizando correo vía hash redirect:', err);
-              }
+              axios.post(`${BACKEND_URL}/actualizar-correo`, {
+                ID_Cliente: currentId,
+                id_cliente: currentId,
+                correoGoogle: email,
+                Correo_Google: email,
+                correo: email,
+                email: email
+              }).catch(err => console.error('Error actualizando correo vía hash redirect:', err));
             }
           }
         }).catch(error => {
@@ -102,10 +150,6 @@ const RegistrationDashboard = () => {
           setStep(3);
           localStorage.setItem('crm_step', '3');
         });
-      } else {
-        setIsGoogleValidated(true);
-        setStep(3);
-        localStorage.setItem('crm_step', '3');
       }
     }
   }, []);
@@ -174,47 +218,80 @@ const RegistrationDashboard = () => {
 
   const handlePaso1 = handleStep1;
 
-
-  // ─── PASO 2: Google login → obtiene email → POST /api/prospectos/actualizar-correo
+  // ─── PASO 2: Google login → obtiene email (JWT o UserInfo) → POST /actualizar-correo
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       console.log('¡Google onSuccess disparado!', tokenResponse);
-      try {
-        const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-        });
-        const emailObtenido = userInfo.data.email;
-        console.log('Email obtenido de Google:', emailObtenido);
-        if (emailObtenido) {
-          setGoogleEmail(emailObtenido);
-          localStorage.setItem('crm_google_email', emailObtenido);
-          localStorage.setItem('google_email', emailObtenido);
-          setFormData(prev => {
-            const updated = { ...prev, correo: emailObtenido, email: emailObtenido };
-            localStorage.setItem('crm_form_data', JSON.stringify(updated));
-            return updated;
-          });
+      let emailObtenido = '';
 
-          // Guardar correo en Google Sheets (Paso 2)
-          const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
-          if (currentId) {
-            try {
-              const resCorreo = await axios.post(`${BACKEND_URL}/actualizar-correo`, {
-                ID_Cliente: currentId,
-                id_cliente: currentId,
-                correo: emailObtenido,
-                email: emailObtenido,
-                Correo_Google: emailObtenido
-              });
-              console.log('[Paso 2] Correo registrado en Sheets OK:', resCorreo.data);
-            } catch (sheetErr) {
-              console.error('[Paso 2] Error al actualizar correo en Sheets:', sheetErr.response?.data || sheetErr.message);
-            }
+      // 1. Decodificar desde la credencial JWT
+      if (tokenResponse?.credential) {
+        const decoded = parseJwt(tokenResponse.credential);
+        if (decoded?.email) {
+          emailObtenido = decoded.email;
+          console.log('[JWT] Email extraído de tokenResponse.credential:', emailObtenido);
+        }
+      }
+
+      // 2. Decodificar si el tokenResponse es directamente una cadena JWT
+      if (!emailObtenido && typeof tokenResponse === 'string') {
+        const decoded = parseJwt(tokenResponse);
+        if (decoded?.email) {
+          emailObtenido = decoded.email;
+          console.log('[JWT] Email extraído de tokenResponse string:', emailObtenido);
+        }
+      }
+
+      // 3. Consultar vía access_token si está disponible
+      if (!emailObtenido && tokenResponse?.access_token) {
+        try {
+          const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          });
+          if (userInfo.data?.email) {
+            emailObtenido = userInfo.data.email;
+            console.log('[UserInfo] Email obtenido de Google API:', emailObtenido);
+          }
+        } catch (err) {
+          console.error('Error obteniendo info de Google via access_token:', err);
+        }
+      }
+
+      if (emailObtenido) {
+        setGoogleEmail(emailObtenido);
+        localStorage.setItem('crm_google_email', emailObtenido);
+        localStorage.setItem('google_email', emailObtenido);
+        
+        setFormData(prev => {
+          const updated = { 
+            ...prev, 
+            correoGoogle: emailObtenido, 
+            correo: emailObtenido, 
+            email: emailObtenido 
+          };
+          localStorage.setItem('crm_form_data', JSON.stringify(updated));
+          return updated;
+        });
+
+        // Guardar correo en Google Sheets (Paso 2)
+        const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
+        if (currentId) {
+          try {
+            const resCorreo = await axios.post(`${BACKEND_URL}/actualizar-correo`, {
+              ID_Cliente: currentId,
+              id_cliente: currentId,
+              correoGoogle: emailObtenido,
+              Correo_Google: emailObtenido,
+              correo: emailObtenido,
+              email: emailObtenido
+            });
+            console.log('[Paso 2] Correo registrado en Sheets OK:', resCorreo.data);
+          } catch (sheetErr) {
+            console.error('[Paso 2] Error al actualizar correo en Sheets:', sheetErr.response?.data || sheetErr.message);
           }
         }
-      } catch (err) {
-        console.error('Error obteniendo info de Google:', err);
       }
+
       setIsGoogleValidated(true);
     },
     onError: (error) => console.log('Google onError:', error),
@@ -240,9 +317,9 @@ const RegistrationDashboard = () => {
     try {
       const currentId = idCliente || localStorage.getItem('idCliente') || localStorage.getItem('crm_id_cliente');
       const savedFormData = JSON.parse(localStorage.getItem('crm_form_data') || '{}');
-      const currentCorreo = formData.correo || formData.email || googleEmail || savedFormData.correo || savedFormData.email || localStorage.getItem('crm_google_email') || localStorage.getItem('google_email') || '';
+      const currentCorreo = formData.correoGoogle || formData.correo || formData.email || googleEmail || savedFormData.correoGoogle || savedFormData.correo || savedFormData.email || localStorage.getItem('crm_google_email') || localStorage.getItem('google_email') || '';
 
-      console.log('[Paso 3] Enviando a backend. ID_Cliente:', currentId, '| Correo:', currentCorreo);
+      console.log('[Paso 3] Enviando a backend. ID_Cliente:', currentId, '| correoGoogle:', currentCorreo);
 
       const response = await fetch(`${BACKEND_URL}/step3`, {
         method: 'POST',
@@ -256,9 +333,10 @@ const RegistrationDashboard = () => {
           Telefono_Manual: formData.telefono,
           presupuesto: formData.presupuesto,
           Presupuesto_Estimado: formData.presupuesto,
+          correoGoogle: currentCorreo,
+          Correo_Google: currentCorreo,
           correo: currentCorreo,
           email: currentCorreo,
-          Correo_Google: currentCorreo,
           Nombre_Manual: formData.nombre || formData.Nombre_Manual,
           nombre: formData.nombre || formData.Nombre_Manual
         })
