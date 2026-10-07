@@ -85,22 +85,22 @@ const step1 = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const actualizarCorreo = async (req, res) => {
   try {
-    const idCliente = req.body.ID_Cliente || req.body.id_cliente;
-    const { correo } = req.body;
+    const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
+    const correo = req.body.correo || req.body.email || req.body.Correo_Google;
 
     if (!idCliente || !correo) {
-      return res.status(400).json({ success: false, message: 'id_cliente y correo son obligatorios.' });
+      return res.status(400).json({ success: false, message: 'ID_Cliente y correo son obligatorios.' });
     }
 
     await actualizarProspectoGoogleSheets(idCliente, [
       { col: 'F', value: correo }  // F: Correo_Google
     ]);
 
-    return res.status(200).json({ success: true, message: 'Correo actualizado.' });
+    return res.status(200).json({ success: true, message: 'Correo de Google actualizado exitosamente en Sheets.' });
 
   } catch (error) {
     console.error('Error en actualizarCorreo:', error);
-    return res.status(500).json({ success: false, message: 'Error al actualizar el correo.' });
+    return res.status(500).json({ success: false, message: 'Error al actualizar el correo en Google Sheets.' });
   }
 };
 
@@ -114,16 +114,23 @@ const step3 = async (req, res) => {
     const Telefono_Manual = req.body.telefono || req.body.Telefono_Manual;
     const Presupuesto_Estimado = req.body.presupuesto || req.body.Presupuesto_Estimado;
     const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
+    const Correo_Google = req.body.correo || req.body.email || req.body.Correo_Google;
 
     if (!idCliente || !Telefono_Manual || !Presupuesto_Estimado) {
       return res.status(400).json({ success: false, message: 'ID_Cliente, telefono y presupuesto son obligatorios.' });
     }
 
-    await actualizarProspectoGoogleSheets(idCliente, [
-      { col: 'D', value: Telefono_Manual },    // D: Telefono_Manual
-      { col: 'E', value: Presupuesto_Estimado }, // E: Presupuesto_Estimado
-      { col: 'N', value: 'Completo' }   // N: Etapa_Actual
-    ]);
+    const updates = [
+      { col: 'D', value: Telefono_Manual },     // D: Telefono_Manual
+      { col: 'E', value: Presupuesto_Estimado },  // E: Presupuesto_Estimado
+      { col: 'N', value: 'Completo' }            // N: Etapa_Actual
+    ];
+
+    if (Correo_Google) {
+      updates.push({ col: 'F', value: Correo_Google }); // F: Correo_Google
+    }
+
+    await actualizarProspectoGoogleSheets(idCliente, updates);
 
     await whatsappService.enviarMensajeConfirmacion(Telefono_Manual, Nombre_Manual);
 

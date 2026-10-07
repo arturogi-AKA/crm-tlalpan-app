@@ -79,12 +79,15 @@ const RegistrationDashboard = () => {
               return updated;
             });
             // Enviar correo al backend (Paso 2)
-            const currentId = localStorage.getItem('crm_id_cliente');
+            const currentId = localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente') || idCliente;
             if (currentId) {
               try {
-                await axios.post(`${API}/api/prospectos/actualizar-correo`, {
+                await axios.post(`${BACKEND_URL}/actualizar-correo`, {
+                  ID_Cliente: currentId,
                   id_cliente: currentId,
-                  correo: emailObtenido
+                  correo: emailObtenido,
+                  email: emailObtenido,
+                  Correo_Google: emailObtenido
                 });
               } catch (err) {
                 console.error('Error actualizando correo vía hash redirect:', err);
@@ -190,12 +193,15 @@ const RegistrationDashboard = () => {
           });
 
           // Guardar correo en Google Sheets (Paso 2)
-          const currentId = idCliente || localStorage.getItem('crm_id_cliente');
+          const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
           if (currentId) {
             try {
-              await axios.post(`${API}/api/prospectos/actualizar-correo`, {
+              await axios.post(`${BACKEND_URL}/actualizar-correo`, {
+                ID_Cliente: currentId,
                 id_cliente: currentId,
-                correo: emailObtenido
+                correo: emailObtenido,
+                email: emailObtenido,
+                Correo_Google: emailObtenido
               });
               console.log('Correo registrado en Sheets.');
             } catch (sheetErr) {
@@ -230,6 +236,8 @@ const RegistrationDashboard = () => {
 
     try {
       const currentId = idCliente || localStorage.getItem('idCliente') || localStorage.getItem('crm_id_cliente');
+      const currentCorreo = formData.correo || formData.email || googleEmail || localStorage.getItem('crm_google_email');
+
       console.log('[Paso 3] Enviando a:', `${BACKEND_URL}/step3`);
       const response = await fetch(`${BACKEND_URL}/step3`, {
         method: 'POST',
@@ -243,6 +251,9 @@ const RegistrationDashboard = () => {
           Telefono_Manual: formData.telefono,
           presupuesto: formData.presupuesto,
           Presupuesto_Estimado: formData.presupuesto,
+          correo: currentCorreo,
+          email: currentCorreo,
+          Correo_Google: currentCorreo,
           Nombre_Manual: formData.nombre || formData.Nombre_Manual,
           nombre: formData.nombre || formData.Nombre_Manual
         })
