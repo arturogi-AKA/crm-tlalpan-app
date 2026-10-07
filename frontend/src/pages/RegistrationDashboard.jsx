@@ -184,8 +184,11 @@ const RegistrationDashboard = () => {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
         });
         const emailObtenido = userInfo.data.email;
+        console.log('Email obtenido de Google:', emailObtenido);
         if (emailObtenido) {
           setGoogleEmail(emailObtenido);
+          localStorage.setItem('crm_google_email', emailObtenido);
+          localStorage.setItem('google_email', emailObtenido);
           setFormData(prev => {
             const updated = { ...prev, correo: emailObtenido, email: emailObtenido };
             localStorage.setItem('crm_form_data', JSON.stringify(updated));
@@ -196,16 +199,16 @@ const RegistrationDashboard = () => {
           const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
           if (currentId) {
             try {
-              await axios.post(`${BACKEND_URL}/actualizar-correo`, {
+              const resCorreo = await axios.post(`${BACKEND_URL}/actualizar-correo`, {
                 ID_Cliente: currentId,
                 id_cliente: currentId,
                 correo: emailObtenido,
                 email: emailObtenido,
                 Correo_Google: emailObtenido
               });
-              console.log('Correo registrado en Sheets.');
+              console.log('[Paso 2] Correo registrado en Sheets OK:', resCorreo.data);
             } catch (sheetErr) {
-              console.error('Error al actualizar correo en Sheets:', sheetErr);
+              console.error('[Paso 2] Error al actualizar correo en Sheets:', sheetErr.response?.data || sheetErr.message);
             }
           }
         }
@@ -236,9 +239,11 @@ const RegistrationDashboard = () => {
 
     try {
       const currentId = idCliente || localStorage.getItem('idCliente') || localStorage.getItem('crm_id_cliente');
-      const currentCorreo = formData.correo || formData.email || googleEmail || localStorage.getItem('crm_google_email');
+      const savedFormData = JSON.parse(localStorage.getItem('crm_form_data') || '{}');
+      const currentCorreo = formData.correo || formData.email || googleEmail || savedFormData.correo || savedFormData.email || localStorage.getItem('crm_google_email') || localStorage.getItem('google_email') || '';
 
-      console.log('[Paso 3] Enviando a:', `${BACKEND_URL}/step3`);
+      console.log('[Paso 3] Enviando a backend. ID_Cliente:', currentId, '| Correo:', currentCorreo);
+
       const response = await fetch(`${BACKEND_URL}/step3`, {
         method: 'POST',
         headers: {

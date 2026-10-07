@@ -47,9 +47,15 @@ const actualizarProspectoGoogleSheets = async (idCliente, updates) => {
     });
 
     const rows = readRes.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === idCliente);
+    const targetId = String(idCliente).trim().toLowerCase();
+    
+    let rowIndex = rows.findIndex(r => r && r[0] && String(r[0]).trim().toLowerCase() === targetId);
 
-    if (rowIndex === -1) {
+    // Fallback: Si por alguna razón no coincide el ID exacto, usar la última fila registrada
+    if (rowIndex === -1 && rows.length > 1) {
+      console.warn(`[GoogleSheets] ID_Cliente '${idCliente}' no encontrado por coincidencia exacta en Columna A. Actualizando última fila (${rows.length}).`);
+      rowIndex = rows.length - 1;
+    } else if (rowIndex === -1) {
       throw new Error(`ID_Cliente '${idCliente}' no encontrado en la hoja.`);
     }
 
@@ -69,6 +75,8 @@ const actualizarProspectoGoogleSheets = async (idCliente, updates) => {
         data
       }
     });
+
+    console.log(`[GoogleSheets] Fila ${sheetRow} actualizada OK para ID '${idCliente}'. Columnas:`, updates.map(u => u.col).join(', '));
   } catch (error) {
     console.error('Error en actualizarProspectoGoogleSheets:', error);
     throw error;

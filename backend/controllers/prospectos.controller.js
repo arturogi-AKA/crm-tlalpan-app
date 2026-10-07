@@ -88,19 +88,25 @@ const actualizarCorreo = async (req, res) => {
     const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
     const correo = req.body.correo || req.body.email || req.body.Correo_Google;
 
+    console.log('[Backend actualizarCorreo] ID_Cliente:', idCliente, '| Correo:', correo);
+
     if (!idCliente || !correo) {
-      return res.status(400).json({ success: false, message: 'ID_Cliente y correo son obligatorios.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID_Cliente y correo son obligatorios.',
+        received: { idCliente, correo, body: req.body } 
+      });
     }
 
     await actualizarProspectoGoogleSheets(idCliente, [
       { col: 'F', value: correo }  // F: Correo_Google
     ]);
 
-    return res.status(200).json({ success: true, message: 'Correo de Google actualizado exitosamente en Sheets.' });
+    return res.status(200).json({ success: true, message: 'Correo de Google actualizado exitosamente en Sheets.', correo });
 
   } catch (error) {
     console.error('Error en actualizarCorreo:', error);
-    return res.status(500).json({ success: false, message: 'Error al actualizar el correo en Google Sheets.' });
+    return res.status(500).json({ success: false, message: 'Error al actualizar el correo en Google Sheets.', error: error.message });
   }
 };
 
@@ -116,6 +122,8 @@ const step3 = async (req, res) => {
     const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
     const Correo_Google = req.body.correo || req.body.email || req.body.Correo_Google;
 
+    console.log('[Backend step3] ID_Cliente:', idCliente, '| Telefono:', Telefono_Manual, '| Presupuesto:', Presupuesto_Estimado, '| Correo_Google:', Correo_Google);
+
     if (!idCliente || !Telefono_Manual || !Presupuesto_Estimado) {
       return res.status(400).json({ success: false, message: 'ID_Cliente, telefono y presupuesto son obligatorios.' });
     }
@@ -128,6 +136,8 @@ const step3 = async (req, res) => {
 
     if (Correo_Google) {
       updates.push({ col: 'F', value: Correo_Google }); // F: Correo_Google
+    } else {
+      console.warn('[Backend step3] No se recibió Correo_Google en el payload del Paso 3.');
     }
 
     await actualizarProspectoGoogleSheets(idCliente, updates);
@@ -138,7 +148,7 @@ const step3 = async (req, res) => {
 
   } catch (error) {
     console.error('Error en step3/completarRegistro:', error);
-    return res.status(500).json({ success: false, message: 'Error al completar el registro en el Paso 3.' });
+    return res.status(500).json({ success: false, message: 'Error al completar el registro en el Paso 3.', error: error.message });
   }
 };
 
