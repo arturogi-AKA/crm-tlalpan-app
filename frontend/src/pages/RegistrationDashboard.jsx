@@ -257,6 +257,8 @@ const RegistrationDashboard = () => {
         }
       }
 
+      console.log("Correo autenticado en Paso 2:", emailObtenido);
+
       if (emailObtenido) {
         setGoogleEmail(emailObtenido);
         localStorage.setItem('crm_google_email', emailObtenido);

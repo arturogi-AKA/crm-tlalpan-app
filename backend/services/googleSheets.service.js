@@ -171,9 +171,92 @@ const probarEscrituraBasica = async () => {
   }
 };
 
+// Actualización del Paso 3 en rango continuo A:F (6 columnas explícitas: ID_Cliente, Nombre_Manual, Apellidos_Manual, Telefono_Manual, Presupuesto_Estimado, Correo_Google)
+const actualizarFilaProspectoPaso3 = async (idCliente, { nombre, apellidos, telefono, presupuesto, correoGoogle }) => {
+  try {
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    if (!spreadsheetId) throw new Error('SPREADSHEET_ID no está definido en .env');
+
+    const sheets = await getSheetClient();
+
+    // Buscar fila por ID_Cliente en Columna A
+    const readRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Prospectos!A:A'
+    });
+
+    const rows = readRes.data.values || [];
+    const targetId = String(idCliente).trim().toLowerCase();
+    
+    let rowIndex = rows.findIndex(r => r && r[0] && String(r[0]).trim().toLowerCase() === targetId);
+
+    if (rowIndex === -1 && rows.length > 1) {
+      console.warn(`[GoogleSheets] ID_Cliente '${idCliente}' no encontrado por coincidencia exacta en Columna A. Usando última fila (${rows.length}).`);
+      rowIndex = rows.length - 1;
+    } else if (rowIndex === -1) {
+      throw new Error(`ID_Cliente '${idCliente}' no encontrado en la hoja.`);
+    }
+
+    const sheetRow = rowIndex + 1;
+
+    // Obtener valores existentes de Nombre y Apellidos si no vienen en la petición
+    let finalNombre = nombre;
+    let finalApellidos = apellidos;
+
+    if (!finalNombre || !finalApellidos) {
+      try {
+        const rowRes = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `Prospectos!A${sheetRow}:C${sheetRow}`
+        });
+        const existingRow = rowRes.data.values ? rowRes.data.values[0] : [];
+        if (!finalNombre) finalNombre = existingRow[1] || '';
+        if (!finalApellidos) finalApellidos = existingRow[2] || '';
+      } catch (readErr) {
+        console.warn('[GoogleSheets] No se pudo leer Nombre/Apellidos existentes:', readErr.message);
+      }
+    }
+
+    // Arreglo explícito de 6 elementos para el rango continuo Prospectos!A{fila}:F{fila}
+    const fila6Col = [
+      String(idCliente || ''),
+      String(finalNombre || ''),
+      String(finalApellidos || ''),
+      String(telefono || ''),
+      String(presupuesto || ''),
+      String(correoGoogle || '')
+    ];
+
+    console.log(`[GoogleSheets] Escribiendo 6 elementos en Prospectos!A${sheetRow}:F${sheetRow}:`, fila6Col);
+
+    // 1. Actualizar rango continuo A:F
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Prospectos!A${sheetRow}:F${sheetRow}`,
+      valueInputOption: 'USER_ENTERED',
+      resource: { values: [fila6Col] }
+    });
+
+    // 2. Actualizar Etapa_Actual en Columna N
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Prospectos!N${sheetRow}`,
+      valueInputOption: 'USER_ENTERED',
+      resource: { values: [['Completo']] }
+    });
+
+    console.log(`[GoogleSheets] Fila ${sheetRow} actualizada OK en A:F + N.`);
+    return { success: true, sheetRow };
+  } catch (error) {
+    console.error('Error en actualizarFilaProspectoPaso3:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   agregarProspectoGoogleSheets,
   actualizarProspectoGoogleSheets,
+  actualizarFilaProspectoPaso3,
   escribirFilaPaso1,
   probarConexionBasica,
   probarEscrituraBasica

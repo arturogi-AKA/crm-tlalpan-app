@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const {
   agregarProspectoGoogleSheets,
   actualizarProspectoGoogleSheets,
+  actualizarFilaProspectoPaso3,
   probarConexionBasica,
   probarEscrituraBasica,
   escribirFilaPaso1
@@ -116,26 +117,26 @@ const actualizarCorreo = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const step3 = async (req, res) => {
   try {
-    console.log("Correo recibido en backend:", req.body);
+    console.log("Payload recibido en Paso 3:", req.body);
 
     const idCliente = req.body.ID_Cliente || req.body.id_cliente || req.body.idCliente;
     const Telefono_Manual = req.body.telefono || req.body.Telefono_Manual;
     const Presupuesto_Estimado = req.body.presupuesto || req.body.Presupuesto_Estimado;
     const Nombre_Manual = req.body.Nombre_Manual || req.body.nombre;
+    const Apellidos_Manual = req.body.Apellidos_Manual || req.body.apellidos;
     const correoGoogle = req.body.correoGoogle || req.body.Correo_Google || req.body.correo || req.body.email || '';
 
     if (!idCliente || !Telefono_Manual || !Presupuesto_Estimado) {
       return res.status(400).json({ success: false, message: 'ID_Cliente, telefono y presupuesto son obligatorios.' });
     }
 
-    const updates = [
-      { col: 'D', value: Telefono_Manual },      // D: Telefono_Manual (4ta col)
-      { col: 'E', value: Presupuesto_Estimado },  // E: Presupuesto_Estimado (5ta col)
-      { col: 'F', value: correoGoogle },          // F: Correo_Google (6ta col)
-      { col: 'N', value: 'Completo' }             // N: Etapa_Actual
-    ];
-
-    await actualizarProspectoGoogleSheets(idCliente, updates);
+    await actualizarFilaProspectoPaso3(idCliente, {
+      nombre: Nombre_Manual,
+      apellidos: Apellidos_Manual,
+      telefono: Telefono_Manual,
+      presupuesto: Presupuesto_Estimado,
+      correoGoogle: correoGoogle
+    });
 
     await whatsappService.enviarMensajeConfirmacion(Telefono_Manual, Nombre_Manual);
 
