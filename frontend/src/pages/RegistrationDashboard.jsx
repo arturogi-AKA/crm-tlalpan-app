@@ -382,7 +382,7 @@ const RegistrationDashboard = () => {
               </button>
 
               <div className="bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 text-white p-3.5 rounded-xl shadow-sm text-center text-xs font-medium mt-4 border border-purple-300/30 leading-relaxed">
-                Es importante validar que eres una persona interesada y no un bot, tu información esta protegida por los datos de confidencialidad de &quot;derechos ARCO&quot;.
+                Es un paso importante validar que eres una persona interesada y no un bot, tu información esta protegida por los datos de confidencialidad &quot;Derechos ARCO&quot;.
               </div>
 
               {isGoogleValidated && (
