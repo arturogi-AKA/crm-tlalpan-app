@@ -218,92 +218,63 @@ const RegistrationDashboard = () => {
 
   const handlePaso1 = handleStep1;
 
-  // ─── PASO 2: Google login → obtiene email (JWT o UserInfo) → POST /actualizar-correo
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      console.log('¡Google onSuccess disparado!', tokenResponse);
-      let emailObtenido = '';
+  // ─── PASO 2: Guardar correo de contacto manual ─────────────────────────────
+  const handleStep2 = async () => {
+    const emailVal = (formData.correoGoogle || formData.correo || formData.email || '').trim();
+    
+    // Validar formato de correo electrónico estructurado (con @ y dominio)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailVal || !emailRegex.test(emailVal)) {
+      setStatus({ 
+        type: 'error', 
+        message: 'Por favor ingresa un correo electrónico válido (ej. ejemplo@correo.com).' 
+      });
+      return;
+    }
 
-      // 1. Decodificar desde la credencial JWT
-      if (tokenResponse?.credential) {
-        const decoded = parseJwt(tokenResponse.credential);
-        if (decoded?.email) {
-          emailObtenido = decoded.email;
-          console.log('[JWT] Email extraído de tokenResponse.credential:', emailObtenido);
-        }
-      }
+    setLoading(true);
+    setStatus({ type: '', message: '' });
 
-      // 2. Decodificar si el tokenResponse es directamente una cadena JWT
-      if (!emailObtenido && typeof tokenResponse === 'string') {
-        const decoded = parseJwt(tokenResponse);
-        if (decoded?.email) {
-          emailObtenido = decoded.email;
-          console.log('[JWT] Email extraído de tokenResponse string:', emailObtenido);
-        }
-      }
+    try {
+      console.log("Correo ingresado en Paso 2:", emailVal);
+      setGoogleEmail(emailVal);
+      localStorage.setItem('crm_google_email', emailVal);
+      localStorage.setItem('google_email', emailVal);
 
-      // 3. Consultar vía access_token si está disponible
-      if (!emailObtenido && tokenResponse?.access_token) {
+      setFormData(prev => {
+        const updated = { ...prev, correoGoogle: emailVal, correo: emailVal, email: emailVal };
+        localStorage.setItem('crm_form_data', JSON.stringify(updated));
+        return updated;
+      });
+
+      const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
+      if (currentId) {
         try {
-          const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          const resCorreo = await axios.post(`${BACKEND_URL}/actualizar-correo`, {
+            ID_Cliente: currentId,
+            id_cliente: currentId,
+            correoGoogle: emailVal,
+            Correo_Google: emailVal,
+            correo: emailVal,
+            email: emailVal
           });
-          if (userInfo.data?.email) {
-            emailObtenido = userInfo.data.email;
-            console.log('[UserInfo] Email obtenido de Google API:', emailObtenido);
-          }
-        } catch (err) {
-          console.error('Error obteniendo info de Google via access_token:', err);
+          console.log('[Paso 2] Correo guardado OK:', resCorreo.data);
+        } catch (sheetErr) {
+          console.warn('[Paso 2] No se pudo guardar correo de inmediato, se enviará en el Paso 3:', sheetErr.response?.data || sheetErr.message);
         }
       }
 
-      console.log("Correo autenticado en Paso 2:", emailObtenido);
-
-      if (emailObtenido) {
-        setGoogleEmail(emailObtenido);
-        localStorage.setItem('crm_google_email', emailObtenido);
-        localStorage.setItem('google_email', emailObtenido);
-        
-        setFormData(prev => {
-          const updated = { 
-            ...prev, 
-            correoGoogle: emailObtenido, 
-            correo: emailObtenido, 
-            email: emailObtenido 
-          };
-          localStorage.setItem('crm_form_data', JSON.stringify(updated));
-          return updated;
-        });
-
-        // Guardar correo en Google Sheets (Paso 2)
-        const currentId = idCliente || localStorage.getItem('crm_id_cliente') || localStorage.getItem('idCliente');
-        if (currentId) {
-          try {
-            const resCorreo = await axios.post(`${BACKEND_URL}/actualizar-correo`, {
-              ID_Cliente: currentId,
-              id_cliente: currentId,
-              correoGoogle: emailObtenido,
-              Correo_Google: emailObtenido,
-              correo: emailObtenido,
-              email: emailObtenido
-            });
-            console.log('[Paso 2] Correo registrado en Sheets OK:', resCorreo.data);
-          } catch (sheetErr) {
-            console.error('[Paso 2] Error al actualizar correo en Sheets:', sheetErr.response?.data || sheetErr.message);
-          }
-        }
-      }
-
-      setIsGoogleValidated(true);
-    },
-    onError: (error) => console.log('Google onError:', error),
-  });
-
-  // ─── Avanzar de Paso 2 a Paso 3 ──────────────────────────────────────────
-  const handlePaso2Siguiente = () => {
-    localStorage.setItem('crm_step', '3');
-    setStep(3);
+      localStorage.setItem('crm_step', '3');
+      setStep(3);
+    } catch (error) {
+      console.error('Error en Paso 2:', error);
+      setStatus({ type: 'error', message: 'Ocurrió un error al procesar el correo. Intenta de nuevo.' });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handlePaso2Siguiente = handleStep2;
 
   // ─── PASO 3: Submit → POST /api/prospectos/step3 ─────────────────────────
   const handleStep3 = async (e) => {
@@ -390,7 +361,7 @@ const RegistrationDashboard = () => {
         </div>
         <div className={`glass-card rounded-2xl p-6 transition-all duration-300 ${step === 2 ? 'ring-2 ring-crm-sidebarActive scale-105' : 'opacity-70'}`}>
           <h3 className="font-bold text-crm-sidebar mb-2">Paso 2</h3>
-          <p className="text-sm text-crm-textGray">Validación Google</p>
+          <p className="text-sm text-crm-textGray">Correo de Contacto</p>
         </div>
         <div className={`glass-card rounded-2xl p-6 transition-all duration-300 ${step === 3 ? 'ring-2 ring-crm-sidebarActive scale-105' : 'opacity-70'}`}>
           <h3 className="font-bold text-crm-sidebar mb-2">Paso 3</h3>
@@ -404,7 +375,7 @@ const RegistrationDashboard = () => {
         <h2 className="text-2xl font-bold text-crm-sidebar mb-8 relative z-10">¡Comienzo registrándome!</h2>
         {step === 2 && (
           <p className="text-crm-textGray text-sm -mt-6 mb-8 relative z-10 animate-in fade-in duration-300">
-            Valido mi correo para seguir comunicados.
+            Ingresa tu correo electrónico para continuar con el registro.
           </p>
         )}
 
@@ -458,48 +429,45 @@ const RegistrationDashboard = () => {
 
           {/* ═══════════════════════════════════════════════════════════════ PASO 2 */}
           {step === 2 && (
-            <div className="space-y-6 max-w-lg text-center py-8 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-indigo-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
+            <div className="space-y-6 max-w-lg animate-in fade-in slide-in-from-right-4 duration-500">
+              <div>
+                <label className="block text-sm font-medium text-crm-textDark mb-2">
+                  Correo Electrónico de Contacto
+                </label>
+                <input
+                  type="email"
+                  name="correoGoogle"
+                  value={formData.correoGoogle || formData.correo || formData.email || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      correoGoogle: val,
+                      correo: val,
+                      email: val
+                    }));
+                  }}
+                  className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:border-crm-sidebarActive focus:ring-4 focus:ring-crm-sidebarActive/10 outline-none transition-all text-gray-800"
+                  placeholder="ejemplo@correo.com"
+                  required
+                />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Autenticación Requerida</h3>
-              <p className="text-crm-textGray mb-8">Valida tu identidad con Google para continuar con el registro.</p>
 
               <button
-                onClick={() => {
-                  setClickedGoogle(true);
-                  loginWithGoogle();
-                }}
+                onClick={handleStep2}
                 disabled={loading}
-                className="flex items-center justify-center space-x-3 w-full bg-white border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm mb-4"
+                className="bg-crm-sidebar text-white w-full py-3.5 rounded-xl font-bold hover:bg-crm-sidebarHover transition-all shadow-lg mt-2 flex justify-center items-center space-x-2"
               >
                 {loading ? (
-                  <span className="w-5 h-5 border-2 border-crm-sidebar border-t-transparent rounded-full animate-spin"></span>
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 ) : (
-                  <>
-                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                    <span>Validar con tu cuenta de Google</span>
-                  </>
+                  <span>Continuar</span>
                 )}
               </button>
 
               <div className="bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 text-white p-3.5 rounded-xl shadow-sm text-center text-xs font-medium mt-4 border border-purple-300/30 leading-relaxed">
                 Es un paso importante validar que eres una persona interesada y no un bot, tu información esta protegida por los datos de confidencialidad &quot;Derechos ARCO&quot;.
               </div>
-
-              {isGoogleValidated && (
-                <button
-                  onClick={handlePaso2Siguiente}
-                  className="bg-crm-sidebar text-white px-8 py-3.5 rounded-xl font-medium hover:bg-crm-sidebarHover transition-colors shadow-lg mt-4 inline-flex items-center justify-center space-x-2 animate-in fade-in duration-300"
-                >
-                  <span>Siguiente ➔</span>
-                </button>
-              )}
             </div>
           )}
 
@@ -507,14 +475,14 @@ const RegistrationDashboard = () => {
           {step === 3 && (
             <form onSubmit={handleSubmit} className="space-y-6 max-w-lg animate-in fade-in slide-in-from-right-4 duration-500">
 
-              {/* Correo validado — solo informativo, NO es un input editable */}
-              {(formData.correo || formData.email || googleEmail) && (
-                <div className="flex items-center space-x-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                  <span className="text-green-500 text-xl">✅</span>
+              {/* Correo de contacto — informativo */}
+              {(formData.correoGoogle || formData.correo || formData.email || googleEmail) && (
+                <div className="flex items-center space-x-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+                  <span className="text-indigo-600 text-xl">✉️</span>
                   <div>
-                    <p className="text-xs text-green-600 font-medium">Correo validado con Google</p>
-                    <p className="text-sm font-semibold text-green-800">
-                      {formData.correo || formData.email || googleEmail}
+                    <p className="text-xs text-indigo-600 font-medium">Correo Electrónico de Contacto</p>
+                    <p className="text-sm font-semibold text-indigo-950">
+                      {formData.correoGoogle || formData.correo || formData.email || googleEmail}
                     </p>
                   </div>
                 </div>
